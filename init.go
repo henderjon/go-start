@@ -17,12 +17,12 @@ type allParams struct {
 func init() {
 	params := allParams{}
 
-	flag.BoolVar(&params.general.version, "version", false, "output version/build information")
+	flag.BoolVar(&params.general.version, "version", false, "output version")
 	flag.Usage = RenderManualPage()
 	flag.Parse()
 
 	if params.general.version {
-		fmt.Fprintln(os.Stdout, GetBuildInfo())
+		fmt.Fprintln(os.Stdout, GetVersionString())
 		os.Exit(0)
 	}
 }

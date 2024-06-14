@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strings"
 	"text/template"
 )
 
@@ -99,19 +98,6 @@ func RenderManualPageMulti(flags []*flag.FlagSet) func() {
 	}
 }
 
-func GetBuildInfo() string {
-	t := template.Must(template.New("buildinfo").Parse(
-		`{{define "buildinfo"}}{{.BinName}} version {{.BuildVersion}}{{end}}`,
-	))
-
-	var s strings.Builder
-	t.Execute(&s, struct {
-		BinName      string
-		BuildVersion string
-	}{
-		BinName:      BinName,
-		BuildVersion: BuildVersion,
-	})
-
-	return s.String()
+func GetVersionString() string {
+	return fmt.Sprintf("%s version %s", BinName, BuildVersion)
 }
