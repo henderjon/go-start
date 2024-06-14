@@ -5,70 +5,75 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 	"text/template"
 )
 
 // Tmpl is a basic man page[-ish] looking template
-const Tmpl = `
+const ManualPageTemplate = `
 {{define "manual"}}
 NAME
-  {{.Bin}} - what does this program do?
+  {{.BinName}} - what does this program do?
 
 SYNOPSIS
-  $ {{.Bin}}
-  $ {{.Bin}} [-h|help]
+  $ {{.BinName}}
+  $ {{.BinName}} [-h|help]
 
 DESCRIPTION
-  {{.Bin}} what does this program do, but in more detail.
+  {{.BinName}} what does this program do, but in more detail.
 
 EXAMPLES
-  $ {{.Bin}} -h
+  $ {{.BinName}} -h
 
 OPTIONS
 {{.Options}}
 VERSION
-  version:  {{.Version}}
+  version:  {{.BuildVersion}}
   compiled: {{.CompiledBy}}
   built:    {{.BuildTimestamp}}
 
 {{end}}
 `
 
-// Info represents the information used in the default Tmpl string
-type Info struct {
-	Tmpl           string
-	Bin            string
-	Version        string
-	CompiledBy     string
+// these vars are built at compile time, DO NOT ALTER
+var (
+	// Version adds build information
+	BinName string
+	// Version adds build information
+	BuildVersion string
+	// BuildTimestamp adds build information
 	BuildTimestamp string
-	Options        string
-	QuickHelp      string
-}
+	// CompiledBy adds the make/model that was used to compile
+	CompiledBy string
+)
 
 // Usage wraps a set of `Info` and creates a flag.Usage func
-func Usage(info Info) func() {
-	if len(info.Tmpl) == 0 {
-		info.Tmpl = Tmpl
-	}
-
-	t := template.Must(template.New("manual").Parse(info.Tmpl))
+func RenderManualPage() func() {
+	t := template.Must(template.New("manual").Parse(ManualPageTemplate))
 
 	return func() {
 		var def bytes.Buffer
 		flag.CommandLine.SetOutput(&def)
 		flag.PrintDefaults()
 
-		info.Options = def.String()
-		t.Execute(os.Stdout, info)
+		t.Execute(os.Stdout, struct {
+			BinName        string
+			Options        string
+			BuildVersion   string
+			BuildTimestamp string
+			CompiledBy     string
+		}{
+			Options:        def.String(),
+			BinName:        BinName,
+			BuildVersion:   BuildVersion,
+			BuildTimestamp: BuildTimestamp,
+			CompiledBy:     CompiledBy,
+		})
 	}
 }
 
-func MultiUsage(flags []*flag.FlagSet, info Info) func() {
-	if len(info.Tmpl) == 0 {
-		info.Tmpl = Tmpl
-	}
-
-	t := template.Must(template.New("manual").Parse(info.Tmpl))
+func RenderManualPageMulti(flags []*flag.FlagSet) func() {
+	t := template.Must(template.New("manual").Parse(ManualPageTemplate))
 
 	return func() {
 		var def bytes.Buffer
@@ -77,7 +82,36 @@ func MultiUsage(flags []*flag.FlagSet, info Info) func() {
 			f.SetOutput(&def)
 			f.PrintDefaults()
 		}
-		info.Options = def.String()
-		t.Execute(os.Stdout, info)
+
+		t.Execute(os.Stdout, struct {
+			Options        string
+			BinName        string
+			BuildVersion   string
+			BuildTimestamp string
+			CompiledBy     string
+		}{
+			Options:        def.String(),
+			BinName:        BinName,
+			BuildVersion:   BuildVersion,
+			BuildTimestamp: BuildTimestamp,
+			CompiledBy:     CompiledBy,
+		})
 	}
+}
+
+func GetBuildInfo() string {
+	t := template.Must(template.New("buildinfo").Parse(
+		`{{define "buildinfo"}}{{.BinName}} version {{.BuildVersion}}{{end}}`,
+	))
+
+	var s strings.Builder
+	t.Execute(&s, struct {
+		BinName      string
+		BuildVersion string
+	}{
+		BinName:      BinName,
+		BuildVersion: BuildVersion,
+	})
+
+	return s.String()
 }
