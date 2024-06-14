@@ -8,7 +8,7 @@ import (
 	"text/template"
 )
 
-// Tmpl is a basic man page[-ish] looking template
+// ManualPageTemplate is a basic man page[-ish] looking template
 const ManualPageTemplate = `
 {{define "manual"}}
 NAME
